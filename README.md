@@ -1,3 +1,4 @@
+[InSpectre logo](logo.png)
 # System Monitoring PowerShell Module
 
 A collection of PowerShell functions to monitor various aspects of your systems hardware.
