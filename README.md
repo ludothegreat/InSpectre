@@ -1,6 +1,6 @@
 # System Monitoring PowerShell Module
 
-A collection of PowerShell functions to monitor various aspects of your system`s hardware.
+A collection of PowerShell functions to monitor various aspects of your systems hardware.
 
 ## Get-CpuUsage
 
