@@ -1,94 +1,73 @@
 ![InSpectre logo](logo.png)
-# System Monitoring PowerShell Module
+# InSpectre System Information Toolkit
 
-A collection of PowerShell functions to monitor various aspects of your systems hardware.
+The InSpectre System Information Toolkit is a PowerShell module designed to retrieve comprehensive system information. This includes information related to CPU, GPU, memory, disk, network, processes, and services.
 
-## Get-CpuUsage
+## Features
 
-Retrieves the current CPU usage percentage.
+- **CPU Usage**: Get the current CPU usage percentage.
+- **CPU Temperature**: Fetch the current CPU temperature.
+- **Motherboard Temperature**: A placeholder for retrieving the motherboard temperature.
+- **Memory Usage**: Retrieve the current memory usage details.
+- **Disk Space Information**: Get free space, total space, and usage percentage for each drive.
+- **Disk Temperature**: A placeholder for retrieving the temperature of each disk drive.
+- **Disk Read/Write Activity**: Retrieve disk read and write activity.
+- **Network Send/Receive Activity**: Get the network send and receive activity.
+- **GPU Utilization and Temperature**: For NVIDIA GPUs, fetch utilization and temperature.
+- **Running Processes**: Retrieve a list of running processes with optional filtering.
+- **Running Services**: Retrieve a list of running services with optional filtering.
+- **System Summary**: Display a summary of various system information.
 
-```powershell
-Get-CpuUsage -Verbose
-```
+## Installation
 
-## Get-CpuTemperature
+1. Clone the repository or download the module.
 
-Retrieves the current CPU temperature.
+    ```bash
+    git clone https://github.com/yourusername/InSpectre.git
+    ```
 
-```powershell
-Get-CpuTemperature -Verbose
-```
+2. Navigate to the directory containing the module.
 
-## Get-MotherboardTemperature
+    ```bash
+    cd InSpectre
+    ```
 
-Retrieves the current motherboard temperature (not yet implemented).
+3. Import the module into your PowerShell session.
 
-```powershell
-Get-MotherboardTemperature -Verbose
-```
+    ```powershell
+    Import-Module .\InSpectre.psm1
+    ```
 
-## Get-MemoryUsage
+## Usage
 
-Retrieves the current memory usage.
+Here are examples of how to use some of the cmdlets:
 
-```powershell
-Get-MemoryUsage -Verbose
-```
-
-## Get-DiskSpace
-
-Retrieves the disk space information for each drive.
-
-```powershell
-Get-DiskSpace -Verbose
-```
-
-## Get-DiskTemperature
-
-Retrieves the temperature of each disk drive (not yet implemented).
+### Get CPU Usage
 
 ```powershell
-Get-DiskTemperature -Verbose
+Get-CpuUsage
 ```
 
-## Get-DiskActivity
-
-Retrieves the disk read and write activity for total logical disks.
+### Get GPU Utilization and Temperature
 
 ```powershell
-Get-DiskActivity -Verbose
+Get-GpuUsage
 ```
 
-## Get-NetworkActivity
-
-Retrieves the network send and receive activity.
+### Get System Summary
 
 ```powershell
-Get-NetworkActivity -Verbose
+Get-InSpectreSummary
 ```
 
-## Get-GpuUsage
+## Contributing
 
-Retrieves the GPU utilization and temperature for NVIDIA GPUs.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests.
 
-```powershell
-Get-GpuUsage -Verbose
-```
+## License
 
-## Get-GpuUtilization
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
-Retrieves the GPU utilization percentage for NVIDIA GPUs.
+## Acknowledgments
 
-```powershell
-Get-GpuUtilization
-```
-
-## Get-GpuTemperature
-
-Retrieves the GPU temperature in Celsius for NVIDIA GPUs.
-
-```powershell
-Get-GpuTemperature
-```
-
-Please note that some features are not yet implemented and may require third-party tools or specific hardware APIs. Feel free to contribute and enhance the module!
+- Your acknowledgments here.
