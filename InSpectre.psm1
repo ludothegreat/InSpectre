@@ -19,13 +19,16 @@ function Get-CpuUsage {
     Write-Verbose "Retrieving CPU utilization using Get-Counter..."
     
     $cpuUtilization = Get-Counter '\Processor(_Total)\% Processor Time' -SampleInterval 1 -MaxSamples 1 |
-                      Select-Object -ExpandProperty CounterSamples |
-                      Select-Object -ExpandProperty CookedValue |
-                      ForEach-Object { [math]::Round($_, 2) }
+    Select-Object -ExpandProperty CounterSamples |
+    Select-Object -ExpandProperty CookedValue |
+    ForEach-Object { [math]::Round($_, 2) }
 
     Write-Debug "CPU utilization retrieved: $cpuUtilization%"
 
-    $cpuUtilization
+    [PSCustomObject]@{
+        ProcessorName = "Core i7-12700F"
+        Utilization   = $cpuUtilization
+    }
 }
 
 function Get-CpuTemperature {
@@ -51,10 +54,15 @@ function Get-CpuTemperature {
     $temperature = Get-WmiObject -Query "SELECT * FROM MSAcpi_ThermalZoneTemperature" -Namespace "root/wmi"
 
     if ($null -ne $temperature) {
-        $celsius = ($temperature.CurrentTemperature - 2732) / 10
+        $celsius = [math]::Round(($temperature.CurrentTemperature - 2732) / 10, 2)
         Write-Debug "CPU temperature retrieved: $celsius°C"
-        $celsius
-    } else {
+
+        [PSCustomObject]@{
+            ProcessorName    = "Core i7-12700F"
+            'Temperature °C' = $celsius
+        }
+    }
+    else {
         Write-Warning "Unable to retrieve CPU temperature. This feature may not be supported on your system."
         $null
     }
@@ -217,9 +225,9 @@ function Get-DiskActivity {
         Write-Debug "Logical Disk: _Total, Read MB/s: $readMBPerSec, Write MB/s: $writeMBPerSec"
 
         [PSCustomObject]@{
-            LogicalDisk       = "C:"
-            ReadMBPerSecond   = $readMBPerSec
-            WriteMBPerSecond  = $writeMBPerSec
+            LogicalDisk      = "C:"
+            ReadMBPerSecond  = $readMBPerSec
+            WriteMBPerSecond = $writeMBPerSec
         }
     }
 
@@ -281,69 +289,77 @@ function Get-NetworkActivity {
 function Get-GpuUsage {
     [CmdletBinding()]
     param()
-    
+
     <#
     .SYNOPSIS
-    Retrieves the GPU utilization and temperature for NVIDIA GPUs.
+    Retrieves the GPU utilization percentage and temperature.
 
     .DESCRIPTION
-    This cmdlet retrieves the GPU utilization percentage and temperature in Celsius for NVIDIA GPUs.
+    This cmdlet retrieves the GPU name, utilization percentage, and temperature for NVIDIA GPUs.
 
     .EXAMPLE
-    Get-GpuUsage -Verbose
+    Get-GpuUsage
 
     .OUTPUTS
-    [PSCustomObject] An object containing GPU ID, utilization percentage, and temperature in Celsius.
+    [PSCustomObject] An object containing GPU name, utilization percentage, and temperature.
     #>
 
-    Write-Verbose "Querying GPU utilization and temperature for NVIDIA GPUs..."
+    Write-Verbose "Retrieving GPU utilization percentage and temperature..."
 
     $nvidiaSmiPath = "C:\WINDOWS\system32\nvidia-smi.exe"
-    
-    if (Test-Path $nvidiaSmiPath) {
-        $gpuInfo = & $nvidiaSmiPath --query-gpu=index,utilization.gpu,temperature.gpu --format=csv,noheader,nounits
-        
-        $gpuData = $gpuInfo | ForEach-Object {
-            $data = $_.Split(',')
-            [PSCustomObject]@{
-                GpuId         = $data[0].Trim()
-                Utilization   = [int]$data[1].Trim()
-                Temperature   = [int]$data[2].Trim()
-            }
+    $gpuInfo = & $nvidiaSmiPath --query-gpu=name, utilization.gpu, temperature.gpu --format=csv, noheader, nounits
+
+    $gpuData = $gpuInfo | ForEach-Object {
+        $data = $_.Split(',')
+        $gpuName = $data[0..($data.Length - 3)] -join ','
+        $utilization = $data[$data.Length - 2].Trim()
+        $temperature = $data[$data.Length - 1].Trim()
+
+        Write-Debug "GPU: $gpuName, Utilization: $utilization%, Temperature: $temperature°C"
+
+        [PSCustomObject]@{
+            GpuName     = $gpuName
+            Utilization = [int]$utilization
+            Temperature = [int]$temperature
         }
-
-        Write-Debug "GPU information retrieved: $($gpuData | Out-String)"
-
-        $gpuData
-    } else {
-        Write-Warning "NVIDIA System Management Interface (nvidia-smi) not found at path $nvidiaSmiPath. Please ensure it is installed and the path is correct."
-        return $null
     }
+
+    $gpuData
 }
 
 function Get-GpuUtilization {
     [CmdletBinding()]
     param()
-    
+
     <#
     .SYNOPSIS
-    Retrieves the GPU utilization percentage for NVIDIA GPUs.
+    Retrieves the GPU utilization percentage.
+
+    .DESCRIPTION
+    This cmdlet retrieves the GPU name and utilization percentage for NVIDIA GPUs.
 
     .EXAMPLE
     Get-GpuUtilization
 
     .OUTPUTS
-    [PSCustomObject] An object containing GPU ID and utilization percentage.
+    [PSCustomObject] An object containing GPU name and utilization percentage.
     #>
 
+    Write-Verbose "Retrieving GPU utilization percentage..."
+
     $nvidiaSmiPath = "C:\WINDOWS\system32\nvidia-smi.exe"
-    $gpuInfo = & $nvidiaSmiPath --query-gpu=index,utilization.gpu --format=csv,noheader,nounits
-    
+    $gpuInfo = & $nvidiaSmiPath --query-gpu=name, utilization.gpu --format=csv, noheader, nounits
+
     $gpuData = $gpuInfo | ForEach-Object {
-        $data = $_.Split(',')
+        $lastCommaIndex = $_.LastIndexOf(',')
+        $gpuName = $_.Substring(0, $lastCommaIndex)
+        $utilization = $_.Substring($lastCommaIndex + 1).Trim()
+
+        Write-Debug "GPU: $gpuName, Utilization: $utilization%"
+
         [PSCustomObject]@{
-            GpuId       = $data[0].Trim()
-            Utilization = [int]$data[1].Trim()
+            GpuName     = $gpuName
+            Utilization = [int]$utilization
         }
     }
 
@@ -365,13 +381,17 @@ function Get-GpuTemperature {
     [PSCustomObject] An object containing GPU ID and temperature in Celsius.
     #>
 
+    Write-Verbose "Retrieving GPU temperature in Celsius..."
+
     $nvidiaSmiPath = "C:\WINDOWS\system32\nvidia-smi.exe"
-    $gpuInfo = & $nvidiaSmiPath --query-gpu=name,temperature.gpu --format=csv,noheader,nounits
-    
+    $gpuInfo = & $nvidiaSmiPath --query-gpu=name, temperature.gpu --format=csv, noheader, nounits
+
     $gpuData = $gpuInfo | ForEach-Object {
         $lastCommaIndex = $_.LastIndexOf(',')
         $gpuName = $_.Substring(0, $lastCommaIndex)
         $temperature = $_.Substring($lastCommaIndex + 1).Trim()
+
+        Write-Debug "GPU: $gpuName, Temperature: $temperature°C"
 
         [PSCustomObject]@{
             GpuName     = $gpuName
@@ -380,4 +400,148 @@ function Get-GpuTemperature {
     }
 
     $gpuData
+}
+
+function Get-RunningProcesses {
+    [CmdletBinding()]
+    param(
+        [string]$Name,
+        [int]$MinCpuUsage,
+        [int]$MinMemoryUsage
+    )
+
+    <#
+    .SYNOPSIS
+    Retrieves a list of running processes.
+
+    .DESCRIPTION
+    This cmdlet retrieves a list of running processes, with optional filtering by name, minimum CPU usage, or minimum memory usage.
+
+    .PARAMETER Name
+    Specifies the process name to filter on.
+
+    .PARAMETER MinCpuUsage
+    Specifies the minimum CPU usage percentage to filter on.
+
+    .PARAMETER MinMemoryUsage
+    Specifies the minimum memory usage (in MB) to filter on.
+
+    .EXAMPLE
+    Get-RunningProcesses -MinCpuUsage 10
+
+    .OUTPUTS
+    [System.Diagnostics.Process] A list of running processes.
+    #>
+
+    Write-Verbose "Querying running processes with Name: '$Name', MinCpuUsage: $MinCpuUsage, MinMemoryUsage: $MinMemoryUsage..."
+
+    $processes = Get-Process | Where-Object {
+        ($_ -match $Name -or [string]::IsNullOrEmpty($Name)) -and
+        ($_.CPU -ge $MinCpuUsage -or [string]::IsNullOrEmpty($MinCpuUsage)) -and
+        (($_.WorkingSet64 / 1MB) -ge $MinMemoryUsage -or [string]::IsNullOrEmpty($MinMemoryUsage))
+    }
+
+    Write-Debug "Found $($processes.Count) matching processes."
+
+    $processes | Select-Object -Property Name, CPU, @{Name = "Memory(MB)"; Expression = { [math]::Round($_.WorkingSet64 / 1MB, 2) } }
+}
+
+function Get-RunningServices {
+    [CmdletBinding()]
+    param(
+        [string]$Status,
+        [string]$Name
+    )
+
+    <#
+    .SYNOPSIS
+    Retrieves a list of running services.
+
+    .DESCRIPTION
+    This cmdlet retrieves a list of running services, with optional filtering by service status or service name.
+
+    .PARAMETER Status
+    Specifies the service status to filter on (e.g., 'Running', 'Stopped').
+
+    .PARAMETER Name
+    Specifies the service name to filter on.
+
+    .EXAMPLE
+    Get-RunningServices -Status 'Running'
+
+    .EXAMPLE
+    Get-RunningServices -Name 'wuauserv'
+
+    .OUTPUTS
+    [System.ServiceProcess.ServiceController] A list of running services.
+    #>
+
+    Write-Verbose "Querying running services..."
+
+    $services = Get-Service -ErrorAction SilentlyContinue | Where-Object {
+        ($_ -match $Name -or [string]::IsNullOrEmpty($Name)) -and
+        ($_.Status -eq $Status -or [string]::IsNullOrEmpty($Status))
+    }
+
+    Write-Debug "Found $($services.Count) services with status '$Status' and name '$Name'."
+
+    $services | ForEach-Object {
+        try {
+            $_ | Select-Object -Property DisplayName, Status, ServiceName
+        }
+        catch {
+            Write-Debug "Failed to query service '$($_.Name)': $_"
+        }
+    }
+}
+
+function Get-InSpectreSummary {
+    [CmdletBinding()]
+    param()
+
+    <#
+    .SYNOPSIS
+    Retrieves and displays a summary of system information.
+
+    .DESCRIPTION
+    This cmdlet retrieves and presents a summary of various system information including CPU, GPU, memory, disk, network, processes, and services.
+
+    .EXAMPLE
+    Get-SystemSummary
+    #>
+
+    Write-Host "`nCPU Information:"
+    Get-CpuUsage | Format-Table -AutoSize
+
+    Write-Host "`nCPU Temperature:"
+    Get-CpuTemperature | Format-Table -AutoSize
+
+    Write-Host "`nGPU Information:"
+    Get-GpuUsage | Format-Table -AutoSize
+
+    Write-Host "`nMemory Usage:"
+    Get-MemoryUsage | Format-Table -AutoSize
+
+    Write-Host "`nDisk Space Information:"
+    Get-DiskSpace | Format-Table -AutoSize
+
+    Write-Host "`nDisk Activity:"
+    Get-DiskActivity | Format-Table -AutoSize
+
+    Write-Host "`nNetwork Activity:"
+    Get-NetworkActivity | Format-Table -AutoSize
+
+    Write-Host "`nRunning Processes (Top 5 by CPU):"
+    Get-RunningProcesses | Sort-Object CPU -Descending | Select-Object -First 5 | Format-Table -AutoSize
+
+    Write-Host "`nRunning Services (Top 5):"
+    Get-RunningServices -Status 'Running' | Select-Object -First 5 | Format-Table -AutoSize
+
+    Write-Host "`nMotherboard Temperature:"
+    Get-MotherboardTemperature | Format-Table -AutoSize
+
+    Write-Host "`nDisk Temperature Information:"
+    Get-DiskTemperature | Format-Table -AutoSize
+
+    Write-Host "`nSystem Summary Completed.`n"
 }
