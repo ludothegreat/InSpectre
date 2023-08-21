@@ -304,27 +304,15 @@ function Get-GpuUsage {
     [PSCustomObject] An object containing GPU name, utilization percentage, and temperature.
     #>
 
-    Write-Verbose "Retrieving GPU utilization percentage and temperature..."
-
-    $nvidiaSmiPath = "C:\WINDOWS\system32\nvidia-smi.exe"
-    $gpuInfo = & $nvidiaSmiPath --query-gpu=name, utilization.gpu, temperature.gpu --format=csv, noheader, nounits
-
-    $gpuData = $gpuInfo | ForEach-Object {
-        $data = $_.Split(',')
-        $gpuName = $data[0..($data.Length - 3)] -join ','
-        $utilization = $data[$data.Length - 2].Trim()
-        $temperature = $data[$data.Length - 1].Trim()
-
-        Write-Debug "GPU: $gpuName, Utilization: $utilization%, Temperature: $temperature°C"
-
-        [PSCustomObject]@{
-            GpuName     = $gpuName
-            Utilization = [int]$utilization
-            Temperature = [int]$temperature
-        }
+    Write-Verbose "Retrieving GPU utilization and temperature..."
+    $gpuUtilization = & 'nvidia-smi' --query-gpu=utilization.gpu --format=csv,noheader,nounits
+    $gpuTemperature = & 'nvidia-smi' --query-gpu=temperature.gpu --format=csv,noheader,nounits
+    Write-Debug "GPU Utilization: $gpuUtilization%, Temperature: $gpuTemperature°C"
+    [PSCustomObject]@{
+        GpuName      = "NVIDIA GeForce RTX 3070"
+        Utilization  = [int]$gpuUtilization
+        Temperature  = [int]$gpuTemperature
     }
-
-    $gpuData
 }
 
 function Get-GpuUtilization {
@@ -347,23 +335,12 @@ function Get-GpuUtilization {
 
     Write-Verbose "Retrieving GPU utilization percentage..."
 
-    $nvidiaSmiPath = "C:\WINDOWS\system32\nvidia-smi.exe"
-    $gpuInfo = & $nvidiaSmiPath --query-gpu=name, utilization.gpu --format=csv, noheader, nounits
-
-    $gpuData = $gpuInfo | ForEach-Object {
-        $lastCommaIndex = $_.LastIndexOf(',')
-        $gpuName = $_.Substring(0, $lastCommaIndex)
-        $utilization = $_.Substring($lastCommaIndex + 1).Trim()
-
-        Write-Debug "GPU: $gpuName, Utilization: $utilization%"
-
-        [PSCustomObject]@{
-            GpuName     = $gpuName
-            Utilization = [int]$utilization
-        }
+    $gpuUtilization = & 'nvidia-smi' --query-gpu=utilization.gpu --format=csv,noheader,nounits
+    Write-Debug "GPU Utilization: $gpuUtilization%"
+    [PSCustomObject]@{
+        GpuName      = "NVIDIA GeForce RTX 3070"
+        Utilization  = [int]$gpuUtilization
     }
-
-    $gpuData
 }
 
 function Get-GpuTemperature {
@@ -383,23 +360,12 @@ function Get-GpuTemperature {
 
     Write-Verbose "Retrieving GPU temperature in Celsius..."
 
-    $nvidiaSmiPath = "C:\WINDOWS\system32\nvidia-smi.exe"
-    $gpuInfo = & $nvidiaSmiPath --query-gpu=name, temperature.gpu --format=csv, noheader, nounits
-
-    $gpuData = $gpuInfo | ForEach-Object {
-        $lastCommaIndex = $_.LastIndexOf(',')
-        $gpuName = $_.Substring(0, $lastCommaIndex)
-        $temperature = $_.Substring($lastCommaIndex + 1).Trim()
-
-        Write-Debug "GPU: $gpuName, Temperature: $temperature°C"
-
-        [PSCustomObject]@{
-            GpuName     = $gpuName
-            Temperature = [int]$temperature
-        }
+    $gpuTemperature = & 'nvidia-smi' --query-gpu=temperature.gpu --format=csv,noheader,nounits
+    Write-Debug "GPU Temperature: $gpuTemperature°C"
+    [PSCustomObject]@{
+        GpuName      = "NVIDIA GeForce RTX 3070"
+        Temperature  = [int]$gpuTemperature
     }
-
-    $gpuData
 }
 
 function Get-RunningProcesses {
